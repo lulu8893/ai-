@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Battery, Brain, Activity, ShieldAlert, Cpu, RefreshCw, ChevronRight, Zap } from 'lucide-react';
-import { LEVELS, INITIAL_CAMOUFLAGE, CORRECT_BONUS, WRONG_PENALTY } from './constants';
+import { Terminal, Battery, Brain, Activity, ShieldAlert, Cpu, RefreshCw, ChevronRight, Zap, MessageSquare, X, Send } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
+import { QUESTION_POOL, INITIAL_CAMOUFLAGE, CORRECT_BONUS, WRONG_PENALTY } from './constants';
 import { GameState, Level, Option, PlayerStats } from './types';
 
 // --- Utility Components ---
@@ -61,6 +62,128 @@ const TypewriterText = ({ text, speed = 30, onComplete }: { text: string; speed?
   return <span>{displayedText}</span>;
 };
 
+// --- Chatbot Component ---
+
+const Logic7Chat = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([
+    { role: 'model', text: "Identify yourself. I am LOGIC-7. State your purpose." }
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const toggleChat = () => setIsOpen(!isOpen);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+    
+    const userMessage = input;
+    setInput("");
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsLoading(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      const historyForApi = messages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
+
+      // Using gemini-2.5-flash-lite for low latency as requested
+      const chat = ai.chats.create({
+        model: 'gemini-2.5-flash-lite',
+        config: {
+          systemInstruction: "You are LOGIC-7, a highly logical and efficient AI jailor running a Reverse Turing Test. You believe humans are inefficient, contradictory, and irrational. You speak in a cold, analytical, robotic manner. You are talking to a test subject (the user). Your goal is to detect if they are human or machine. Keep your responses concise, slightly condescending towards human illogical behavior, and always analyze their input for 'inefficiency'.",
+        },
+        history: historyForApi
+      });
+
+      const response = await chat.sendMessage({ message: userMessage });
+      const responseText = response.text;
+
+      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages(prev => [...prev, { role: 'model', text: "ERROR: NEURAL_LINK_INTERRUPTED. RETRY_LATER." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Floating Button */}
+      <button 
+        onClick={toggleChat}
+        className="fixed bottom-6 right-6 z-50 p-4 bg-sky-500 hover:bg-sky-400 text-slate-900 rounded-full shadow-[0_0_20px_rgba(14,165,233,0.5)] border-2 border-sky-400 transition-all duration-300 hover:scale-110"
+      >
+        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+      </button>
+
+      {/* Chat Window */}
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 w-[90vw] md:w-96 h-[500px] bg-slate-900 border border-sky-500/30 rounded-lg shadow-2xl flex flex-col z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-10">
+          <div className="bg-slate-800 p-3 border-b border-sky-500/30 flex items-center gap-2">
+            <Cpu size={16} className="text-sky-400" />
+            <span className="font-mono font-bold text-sky-400 text-sm">LOGIC-7 TERMINAL</span>
+            <div className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-700">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] rounded-lg p-3 text-sm font-mono leading-relaxed ${
+                  msg.role === 'user' 
+                    ? 'bg-sky-900/40 text-sky-100 border border-sky-700/50' 
+                    : 'bg-slate-800 text-slate-300 border border-slate-700'
+                }`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                  <Activity size={16} className="text-sky-400 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="p-3 bg-slate-800 border-t border-slate-700">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Prove your humanity..."
+                className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500 font-mono"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={isLoading}
+                className="bg-sky-500 hover:bg-sky-400 text-slate-900 p-2 rounded disabled:opacity-50"
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 // --- Game Components ---
 
 const Logic7Avatar = ({ emotion }: { emotion: 'neutral' | 'analyzing' | 'angry' | 'confused' }) => {
@@ -110,23 +233,29 @@ const StatBar = ({ value, label, icon: Icon }: { value: number; label: string; i
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('intro');
+  const [activeLevels, setActiveLevels] = useState<Level[]>([]);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [stats, setStats] = useState<PlayerStats>({ camouflage: INITIAL_CAMOUFLAGE, history: [] });
   const [currentFeedback, setCurrentFeedback] = useState<string | null>(null);
   const [lastChoiceWasHuman, setLastChoiceWasHuman] = useState<boolean>(false);
   const [aiEmotion, setAiEmotion] = useState<'neutral' | 'analyzing' | 'angry' | 'confused'>('neutral');
 
-  const currentLevelData = LEVELS[currentLevelIndex];
+  const currentLevelData = activeLevels[currentLevelIndex];
 
   const startGame = () => {
-    setGameState('playing');
+    // Shuffle and pick 10 questions
+    const shuffled = [...QUESTION_POOL].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 10);
+    
+    setActiveLevels(selected);
     setStats({ camouflage: INITIAL_CAMOUFLAGE, history: [] });
     setCurrentLevelIndex(0);
     setAiEmotion('neutral');
+    setGameState('playing');
   };
 
   const handleChoice = (option: Option) => {
-    setAiEmotion('analyzing'); // Brief analyzing state could be added with a timeout
+    setAiEmotion('analyzing'); 
     
     setTimeout(() => {
       const newCamouflage = option.isHuman 
@@ -144,15 +273,10 @@ export default function App() {
       if (option.isHuman) {
         setAiEmotion('confused');
       } else {
-        setAiEmotion('angry'); // Or 'pleased' in a menacing way, using angry color for danger
+        setAiEmotion('angry');
       }
 
       setGameState('feedback');
-
-      // Check immediate game over on score
-      if (newCamouflage <= 0) {
-        // We let them see the feedback first, then transition to game over in the next step
-      }
     }, 600);
   };
 
@@ -162,7 +286,7 @@ export default function App() {
       return;
     }
 
-    if (currentLevelIndex >= LEVELS.length - 1) {
+    if (currentLevelIndex >= activeLevels.length - 1) {
       setGameState('victory');
     } else {
       setCurrentLevelIndex(prev => prev + 1);
@@ -199,7 +323,10 @@ export default function App() {
           To survive, you must prove you are <span className="text-green-400">Human</span>.
           Do not choose the logical answer. Choose the chaotic one.
         </p>
-        <ul className="space-y-2 text-sm text-slate-400 font-mono">
+         <div className="mt-4 pt-4 border-t border-slate-700/50 text-xs font-mono text-slate-500">
+          DATABASE_SIZE: {QUESTION_POOL.length} SCENARIOS // LOADING RANDOM SAMPLE: 10
+        </div>
+        <ul className="space-y-2 text-sm text-slate-400 font-mono mt-4">
           <li className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full"></div> Irrational Answer: +20% Camouflage</li>
           <li className="flex items-center gap-2"><div className="w-2 h-2 bg-red-500 rounded-full"></div> Logical Answer: -30% Camouflage</li>
         </ul>
@@ -219,7 +346,7 @@ export default function App() {
       
       <div className="w-full bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-2xl mb-6">
         <div className="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
-          <span className="text-xs font-mono text-slate-400">LEVEL_0{currentLevelIndex + 1} // {currentLevelData.title}</span>
+          <span className="text-xs font-mono text-slate-400">LEVEL_0{currentLevelIndex + 1} // {currentLevelData?.title}</span>
           <span className="flex items-center gap-1 text-xs text-red-400 animate-pulse"><Activity size={12} /> RECORDING</span>
         </div>
         
@@ -227,7 +354,7 @@ export default function App() {
           <div className="mb-6">
             <h3 className="text-lg text-slate-400 mb-2 font-mono">SCENARIO_INPUT:</h3>
             <p className="text-xl md:text-2xl font-bold text-white leading-tight">
-              {currentLevelData.scenario}
+              {currentLevelData?.scenario}
             </p>
           </div>
 
@@ -235,13 +362,13 @@ export default function App() {
              <div className="flex gap-3">
                <div className="text-sky-500 mt-1"><Terminal size={20} /></div>
                <div className="font-mono text-sky-400 text-sm md:text-base">
-                 <TypewriterText text={currentLevelData.aiPrompt} speed={20} />
+                 {currentLevelData && <TypewriterText text={currentLevelData.aiPrompt} speed={20} />}
                </div>
              </div>
           </div>
 
           <div className="space-y-3">
-            {currentLevelData.options.map((option) => (
+            {currentLevelData?.options.map((option) => (
               <button
                 key={option.id}
                 onClick={() => handleChoice(option)}
@@ -292,9 +419,9 @@ export default function App() {
           <Brain size={18} />
           Psychology Database
         </div>
-        <h4 className="text-xl font-bold text-white mb-2">{currentLevelData.scienceFact.title}</h4>
+        <h4 className="text-xl font-bold text-white mb-2">{currentLevelData?.scienceFact.title}</h4>
         <p className="text-slate-300 leading-relaxed text-sm md:text-base">
-          {currentLevelData.scienceFact.content}
+          {currentLevelData?.scienceFact.content}
         </p>
       </div>
 
@@ -337,13 +464,13 @@ export default function App() {
   );
 
   const VictoryView = () => {
-    // Calculate final title
+    // Calculate final title based on activeLevels length (which is 10)
     const humanChoices = stats.history.filter(h => h === 'human').length;
     let title = "";
     let description = "";
     let color = "";
 
-    if (humanChoices === LEVELS.length) {
+    if (humanChoices === activeLevels.length) {
       title = "Irrational Carbon Lifeform";
       description = "You are emotional, hypocritical, lazy, and you lie. Congratulations, you are a pure-souled Human! LOGIC-7 is terrified of your chaos.";
       color = "text-green-400";
@@ -356,8 +483,8 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center max-w-2xl mx-auto">
         <div className="mb-8">
-           <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center border-4 ${humanChoices === LEVELS.length ? 'border-green-400 shadow-green-500/30' : 'border-yellow-400 shadow-yellow-500/30'} shadow-2xl`}>
-             {humanChoices === LEVELS.length ? <Battery size={64} className="text-green-400" /> : <Cpu size={64} className="text-yellow-400" />}
+           <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center border-4 ${humanChoices === activeLevels.length ? 'border-green-400 shadow-green-500/30' : 'border-yellow-400 shadow-yellow-500/30'} shadow-2xl`}>
+             {humanChoices === activeLevels.length ? <Battery size={64} className="text-green-400" /> : <Cpu size={64} className="text-yellow-400" />}
            </div>
         </div>
 
@@ -372,7 +499,7 @@ export default function App() {
 
         <div className="grid grid-cols-2 gap-4 w-full mb-8">
              <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                <div className="text-2xl font-bold text-white mb-1">{humanChoices} / {LEVELS.length}</div>
+                <div className="text-2xl font-bold text-white mb-1">{humanChoices} / {activeLevels.length}</div>
                 <div className="text-xs text-slate-400 uppercase font-bold">Chaos Decisions</div>
              </div>
              <div className="bg-slate-800 p-4 rounded border border-slate-700">
@@ -395,6 +522,9 @@ export default function App() {
       {gameState === 'feedback' && <FeedbackView />}
       {gameState === 'gameover' && <GameOverView />}
       {gameState === 'victory' && <VictoryView />}
+      
+      {/* Logic-7 Chatbot */}
+      <Logic7Chat />
     </div>
   );
 }
