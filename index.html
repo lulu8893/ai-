@@ -10,13 +10,17 @@
       
       body {
         font-family: 'VT323', monospace;
-        background-color: #FEF3C7; /* Amber-100 */
+        background-color: #cbd5e1; /* Slate-300 */
         color: #1a1a1a;
         cursor: crosshair;
+        /* Cute Brick Pattern */
         background-image: 
-          linear-gradient(#E5E7EB 1px, transparent 1px),
-          linear-gradient(90deg, #E5E7EB 1px, transparent 1px);
-        background-size: 20px 20px;
+          linear-gradient(335deg, rgba(255,255,255,0.4) 23px, transparent 23px),
+          linear-gradient(155deg, rgba(255,255,255,0.4) 23px, transparent 23px),
+          linear-gradient(335deg, rgba(255,255,255,0.4) 23px, transparent 23px),
+          linear-gradient(155deg, rgba(255,255,255,0.4) 23px, transparent 23px);
+        background-size: 58px 58px;
+        background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px;
       }
       
       .font-pixel {
@@ -44,6 +48,14 @@
       
       .pixel-shadow-sm {
         box-shadow: 3px 3px 0px 0px #000000;
+      }
+
+      @keyframes swing {
+        0% { transform: rotate(-15deg); }
+        100% { transform: rotate(15deg); }
+      }
+      .animate-swing {
+        animation: swing 2s ease-in-out infinite alternate;
       }
     </style>
   <script type="importmap">
