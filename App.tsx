@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Battery, Brain, ShieldAlert, Cpu, RefreshCw, ChevronRight, Zap, MessageSquare, X, Send, Heart, Skull, Meh, Smile } from 'lucide-react';
+import { Battery, Brain, ShieldAlert, Cpu, RefreshCw, ChevronRight, Zap, MessageSquare, X, Send, Heart, Skull, Meh, Smile, Share2 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { QUESTION_POOL, INITIAL_CAMOUFLAGE, CORRECT_BONUS, WRONG_PENALTY } from './constants';
 import { GameState, Level, Option, PlayerStats } from './types';
@@ -40,7 +40,7 @@ const PixelButton = ({
 }: { 
   onClick: () => void; 
   children?: React.ReactNode; 
-  variant?: 'primary' | 'danger' | 'success' | 'neutral' | 'outline'; 
+  variant?: 'primary' | 'danger' | 'success' | 'neutral' | 'outline' | 'yellow'; 
   className?: string;
   disabled?: boolean;
 }) => {
@@ -50,6 +50,7 @@ const PixelButton = ({
     success: "bg-green-500 hover:bg-green-400 text-black",
     neutral: "bg-gray-200 hover:bg-gray-100 text-black",
     outline: "bg-white hover:bg-gray-50 text-black",
+    yellow: "bg-yellow-400 hover:bg-yellow-300 text-black",
   };
 
   return (
@@ -66,6 +67,18 @@ const PixelButton = ({
     >
       {children}
     </button>
+  );
+};
+
+const PixelToast = ({ message, visible }: { message: string; visible: boolean }) => {
+  if (!visible) return null;
+  return (
+    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-200 pointer-events-none">
+      <div className="bg-black text-white font-pixel text-xs px-6 py-3 border-4 border-white pixel-shadow flex items-center gap-2">
+        <div className="w-2 h-2 bg-green-400 animate-pulse"></div>
+        {message}
+      </div>
+    </div>
   );
 };
 
@@ -279,8 +292,21 @@ export default function App() {
   const [currentFeedback, setCurrentFeedback] = useState<string | null>(null);
   const [lastChoiceWasHuman, setLastChoiceWasHuman] = useState<boolean>(false);
   const [aiEmotion, setAiEmotion] = useState<'neutral' | 'analyzing' | 'angry' | 'confused'>('neutral');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   const currentLevelData = activeLevels[currentLevelIndex];
+
+  const showNotification = (msg: string) => {
+    setToastMessage(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showNotification("RESULT COPIED TO CLIPBOARD");
+  };
 
   const startGame = () => {
     const shuffled = [...QUESTION_POOL].sort(() => 0.5 - Math.random());
@@ -455,40 +481,58 @@ export default function App() {
     </div>
   );
 
-  const GameOverView = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center max-w-lg mx-auto">
-      <div className="w-32 h-32 border-4 border-black bg-gray-200 flex items-center justify-center mb-8 pixel-shadow">
-        <Skull size={64} className="text-black" />
-      </div>
-      
-      <h1 className="text-4xl md:text-5xl font-pixel mb-4 text-red-600 bg-black p-2">ELIMINATED</h1>
-      <h2 className="text-2xl font-vt323 mb-8 bg-yellow-200 inline-block px-2">SUBJECT: BOT</h2>
-      
-      <p className="text-xl mb-8 font-bold">
-        "Your logic is flawless. You are clearly a machine. I have formatted your hard drive."
-      </p>
+  const GameOverView = () => {
+    const handleShareLost = () => {
+       const text = `🤖 REVERSE TURING TEST\n\nI was identified as a ROBOT by Logic-7.\nLogic Level: 100%\nSoul: 404 Not Found\n\nCan you prove you're not a robot?\nPlay here: ${window.location.href}`;
+       copyToClipboard(text);
+    };
 
-      <div className="border-4 border-black p-4 w-full mb-8 bg-white text-left font-pixel text-xs">
-        <div className="border-b-2 border-black pb-2 mb-2">STATS REPORT</div>
-        <div className="flex justify-between mb-1">
-          <span>LOGIC:</span>
-          <span>100%</span>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center max-w-lg mx-auto">
+        <div className="w-32 h-32 border-4 border-black bg-gray-200 flex items-center justify-center mb-8 pixel-shadow">
+          <Skull size={64} className="text-black" />
         </div>
-        <div className="flex justify-between">
-          <span>SOUL:</span>
-          <span>404 NOT FOUND</span>
+        
+        <h1 className="text-4xl md:text-5xl font-pixel mb-4 text-red-600 bg-black p-2">ELIMINATED</h1>
+        <h2 className="text-2xl font-vt323 mb-8 bg-yellow-200 inline-block px-2">SUBJECT: BOT</h2>
+        
+        <p className="text-xl mb-8 font-bold">
+          "Your logic is flawless. You are clearly a machine. I have formatted your hard drive."
+        </p>
+
+        <div className="border-4 border-black p-4 w-full mb-8 bg-white text-left font-pixel text-xs">
+          <div className="border-b-2 border-black pb-2 mb-2">STATS REPORT</div>
+          <div className="flex justify-between mb-1">
+            <span>LOGIC:</span>
+            <span>100%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>SOUL:</span>
+            <span>404 NOT FOUND</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          <PixelButton onClick={startGame} variant="neutral" className="flex-1">
+            <RefreshCw size={16} /> RESTART
+          </PixelButton>
+          <PixelButton onClick={handleShareLost} variant="yellow" className="flex-1">
+            <Share2 size={16} /> SHARE
+          </PixelButton>
         </div>
       </div>
-
-      <PixelButton onClick={startGame} variant="neutral">
-        <RefreshCw size={16} /> RESTART
-      </PixelButton>
-    </div>
-  );
+    );
+  };
 
   const VictoryView = () => {
     const humanChoices = stats.history.filter(h => h === 'human').length;
     const isPerfect = humanChoices === activeLevels.length;
+
+    const handleShareWin = () => {
+        const title = isPerfect ? "CHAOTIC HUMAN" : "CYBORG";
+        const text = `🤖 REVERSE TURING TEST\n\nI scored ${humanChoices}/10 in proving my humanity!\nStatus: ${title}\nHP Left: ${stats.camouflage}%\n\nCan you prove you're not a robot?\nPlay here: ${window.location.href}`;
+        copyToClipboard(text);
+    };
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center max-w-2xl mx-auto">
@@ -520,15 +564,22 @@ export default function App() {
              </div>
         </div>
 
-        <PixelButton onClick={startGame}>
-          PLAY AGAIN
-        </PixelButton>
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          <PixelButton onClick={startGame} className="flex-1">
+            <RefreshCw size={16} /> PLAY AGAIN
+          </PixelButton>
+          <PixelButton onClick={handleShareWin} variant="yellow" className="flex-1">
+            <Share2 size={16} /> SHARE RESULT
+          </PixelButton>
+        </div>
       </div>
     );
   };
 
   return (
     <div className="min-h-screen pb-20 selection:bg-pink-400 selection:text-white">
+      <PixelToast message={toastMessage} visible={showToast} />
+
       {gameState === 'intro' && <IntroView />}
       {gameState === 'playing' && <PlayingView />}
       {gameState === 'feedback' && <FeedbackView />}
