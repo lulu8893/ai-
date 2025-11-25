@@ -159,7 +159,8 @@ const Logic7Chat = () => {
       });
 
       const response = await chat.sendMessage({ message: userMessage });
-      setMessages(prev => [...prev, { role: 'model', text: response.text }]);
+      // Fix for TypeScript error: ensure text is a string
+      setMessages(prev => [...prev, { role: 'model', text: response.text || "ERROR: NO DATA" }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'model', text: "ERROR: 404 NETWORK_FAIL" }]);
     } finally {
