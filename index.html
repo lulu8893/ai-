@@ -6,71 +6,62 @@
     <title>Reverse Turing Test</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
       
       body {
-        font-family: 'Inter', sans-serif;
-        background-color: #0f172a;
-        color: #e2e8f0;
+        font-family: 'VT323', monospace;
+        background-color: #FEF3C7; /* Amber-100 */
+        color: #1a1a1a;
+        cursor: crosshair;
+        background-image: 
+          linear-gradient(#E5E7EB 1px, transparent 1px),
+          linear-gradient(90deg, #E5E7EB 1px, transparent 1px);
+        background-size: 20px 20px;
       }
       
-      .font-mono {
-        font-family: 'JetBrains Mono', monospace;
+      .font-pixel {
+        font-family: 'Press Start 2P', cursive;
       }
 
-      /* CRT Scanline Effect */
-      .scanline {
-        background: linear-gradient(
-          to bottom,
-          rgba(255,255,255,0),
-          rgba(255,255,255,0) 50%,
-          rgba(0,0,0,0.2) 50%,
-          rgba(0,0,0,0.2)
-        );
-        background-size: 100% 4px;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 50;
-        opacity: 0.15;
+      /* Custom Scrollbar for Pixel Feel */
+      ::-webkit-scrollbar {
+        width: 12px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1; 
+        border-left: 2px solid #000;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #000; 
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #333; 
       }
       
-      .flicker {
-        animation: flicker 0.15s infinite;
+      .pixel-shadow {
+        box-shadow: 6px 6px 0px 0px #000000;
       }
-
-      @keyframes flicker {
-        0% { opacity: 0.95; }
-        100% { opacity: 1; }
-      }
-
-      .ai-pulse {
-        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-      }
-
-      @keyframes pulse-ring {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(56, 189, 248, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+      
+      .pixel-shadow-sm {
+        box-shadow: 3px 3px 0px 0px #000000;
       }
     </style>
   <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <div class="scanline"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
